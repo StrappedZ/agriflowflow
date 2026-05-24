@@ -239,64 +239,34 @@ select.form-input { cursor: pointer; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Mobile responsive sidebar */
 @media (max-width: 768px) {
   .shell {
     flex-direction: column;
   }
 
+  /* Hide hamburger on desktop */
+  #hamburger {
+    display: none;
+  }
+
   .sidebar {
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 8px;
+    position: fixed;
+    top: 0;
+    left: -260px;
+    height: 100vh;
+    width: 240px;
+    z-index: 100;
+    transition: left 0.3s ease;
+    overflow-y: auto;
   }
 
-  .brand {
-    display: none;
-  }
-
-  .sidebar-footer {
-    display: none;
-  }
-
-  .nav {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-    width: 100%;
-  }
-
-  .nav-section {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-  }
-
-  .nav-label {
-    display: none;
-  }
-
-  .nav-item {
-    flex-direction: column;
-    font-size: 10px;
-    padding: 6px 10px;
-    white-space: nowrap;
-    gap: 3px;
-  }
-
-  .nav-item svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .nav-badge {
-    display: none;
+  .sidebar.mobile-open {
+    left: 0;
   }
 
   .main {
     width: 100%;
+    margin-left: 0 !important;
   }
 
   .topbar {
@@ -316,21 +286,17 @@ select.form-input { cursor: pointer; }
   .grid-2, .grid-3-2 {
     grid-template-columns: 1fr;
   }
+
+  /* Show hamburger on mobile */
+  @media (max-width: 768px) {
+    #hamburger {
+      display: block !important;
+    }
+  }
 }
 
-/* Very small phones */
 @media (max-width: 480px) {
-  .stat-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .topbar-right {
-    gap: 6px;
-  }
-
-  #user-name {
-    display: none;
-  }
+  #user-name { display: none; }
 }
 
 /* Tabs */
