@@ -14,7 +14,7 @@
 <script type="module" src="./javascript/features.js"></script>
 </head>
 <body>
-
+<div id="sidebar-overlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;"></div>
 <div class="shell">
 
   <!-- ── SIDEBAR ── -->
@@ -99,15 +99,25 @@
 
   <!-- ── MAIN ── -->
   <div class="main">
-    <div class="topbar">
-      <div class="topbar-title" id="page-title">Dashboard</div>
-      <div class="topbar-right">
-        <div class="fb-status">
-          <div class="fb-dot" id="fb-dot"></div>
-          <span id="fb-status-text">Connecting…</span>
-        </div>
-        <span id="user-name" style="font-size:13px;color:var(--text-faint);margin-right:8px;"></span>
-        <button class="tb-btn" onclick="signOutUser()" style="margin-right:8px;">Sign Out</button>
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button id="hamburger" onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;padding:4px;display:none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div class="topbar-title" id="page-title">Dashboard</div>
+  </div>
+  <div class="topbar-right">
+    <div class="fb-status">
+      <div class="fb-dot" id="fb-dot"></div>
+      <span id="fb-status-text">Connecting…</span>
+    </div>
+    <span id="user-name" style="font-size:13px;color:var(--text-faint);margin-right:8px;"></span>
+    <button class="tb-btn" onclick="signOutUser()" style="margin-right:8px;">Sign Out</button>
+    
+  </div>
+</div>
 
       </div>
     </div>
