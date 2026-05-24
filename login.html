@@ -39,7 +39,7 @@
         await signInWithEmailAndPassword(auth, email, password);
         feedback.style.color = 'var(--green-600)';
         feedback.textContent = "Login successful! Redirecting…";
-        setTimeout(() => window.location.href = '/agriflow/index.html', 1000);
+        setTimeout(() => window.location.href = '/agriflowflow/index.html', 1000);
       } catch(e) {
         feedback.style.color = 'var(--red-600)';
         feedback.textContent = e.message;
