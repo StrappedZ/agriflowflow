@@ -246,5 +246,5 @@ window.markAsHarvested = async function() {
 window.signOutUser = async function() {
   await signOut(auth);
   
-window.location.href = 'https://strappedz.github.io/agriflowflow/login.html';
+window.location.href = '/agriflowflow/login.html';
 };
