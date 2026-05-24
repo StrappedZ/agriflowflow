@@ -88,6 +88,13 @@ export function showToast(msg, type = 'info') {
   setTimeout(() => t.remove(), 3000);
 }
 
+window.toggleSidebar = function() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.toggle('mobile-open');
+  overlay.style.display = isOpen ? 'block' : 'none';
+};
+
 // ── Expose globals ───────────────────────────────────────────────
 window.showPage   = showPage;
 window.openAddCrop = openAddCrop;
