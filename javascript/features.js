@@ -33,6 +33,72 @@ onAuthStateChanged(auth, user => {
 });
 
 // ═══════════════════════════════════════════════════════
+// VALIDATION HELPERS
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Text-only: allows letters, numbers, spaces, and common punctuation.
+ * Blocks special characters like <, >, {, }, etc.
+ */
+function isTextOnly(val) {
+  return /^[a-zA-Z0-9\s\-_.,()&'/]+$/.test(val.trim());
+}
+
+/**
+ * Number-only: must be a non-negative finite number.
+ * Empty string passes (field is optional unless required separately).
+ */
+function isNumberOnly(val) {
+  if (val === '' || val === null || val === undefined) return true;
+  const n = parseFloat(val);
+  return !isNaN(n) && isFinite(n) && n >= 0;
+}
+
+/** Get trimmed value from an input by id */
+function getVal(id) {
+  return (document.getElementById(id)?.value ?? '').trim();
+}
+
+/**
+ * Show an inline error below a field.
+ * Pass msg = '' to clear the error.
+ */
+function setErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Reset border
+  el.style.borderColor = msg ? '#ef4444' : '';
+  el.style.boxShadow   = msg ? '0 0 0 2px rgba(239,68,68,0.15)' : '';
+  // Remove old error label if present
+  const existing = el.parentElement.querySelector(`.field-err[data-for="${id}"]`);
+  if (existing) existing.remove();
+  if (msg) {
+    const span = document.createElement('span');
+    span.className = 'field-err';
+    span.dataset.for = id;
+    span.style.cssText = 'color:#ef4444;font-size:11px;margin-top:3px;display:block;line-height:1.4;';
+    span.textContent = msg;
+    el.insertAdjacentElement('afterend', span);
+  }
+}
+
+/** Clear errors for a list of field ids */
+function clearErrs(...ids) {
+  ids.forEach(id => setErr(id, ''));
+}
+
+/** Clear all errors inside a modal */
+function clearModalErrs(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  modal.querySelectorAll('.field-err').forEach(e => e.remove());
+  modal.querySelectorAll('input, select, textarea').forEach(el => {
+    el.style.borderColor = '';
+    el.style.boxShadow   = '';
+  });
+}
+
+// ═══════════════════════════════════════════════════════
 // ACTIVITY LOG
 // ═══════════════════════════════════════════════════════
 function listenActivities() {
@@ -80,21 +146,46 @@ function renderActivities() {
 }
 
 window.openActivityModal = function() {
+  clearModalErrs('activity-modal');
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('activity-modal').classList.add('open');
 };
 
 window.saveActivity = async function() {
+  const field = getVal('a-field');
+  const by    = getVal('a-by');
+  const notes = getVal('a-notes');
+  const date  = getVal('a-date');
+
+  clearErrs('a-date', 'a-field', 'a-by', 'a-notes');
+  let valid = true;
+
+  if (!date) {
+    setErr('a-date', 'Date is required.');
+    valid = false;
+  }
+  if (field && !isTextOnly(field)) {
+    setErr('a-field', 'Field/Crop must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+  if (by && !isTextOnly(by)) {
+    setErr('a-by', 'Name must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+  if (!valid) return;
+
   const data = {
     type:  document.getElementById('a-type').value,
-    date:  document.getElementById('a-date').value,
-    field: document.getElementById('a-field').value.trim(),
-    by:    document.getElementById('a-by').value.trim(),
-    notes: document.getElementById('a-notes').value.trim(),
+    date,
+    field,
+    by,
+    notes,
     created: Date.now()
   };
+
   await push(ref(db, `activities/${uid}`), data);
   document.getElementById('activity-modal').classList.remove('open');
+  clearModalErrs('activity-modal');
   ['a-field','a-by','a-notes'].forEach(id => document.getElementById(id).value = '');
   showToast('Activity logged!', 'success');
 };
@@ -174,24 +265,65 @@ function renderHarvests(records) {
 }
 
 window.openHarvestModal = function() {
+  clearModalErrs('harvest-modal');
   document.getElementById('h-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('harvest-modal').classList.add('open');
 };
 
 window.saveHarvest = async function() {
-  const crop = document.getElementById('h-crop').value.trim();
-  if (!crop) { showToast('Crop name required.', 'warn'); return; }
+  const crop   = getVal('h-crop');
+  const field  = getVal('h-field');
+  const date   = getVal('h-date');
+  const est    = getVal('h-est');
+  const actual = getVal('h-actual');
+  const notes  = getVal('h-notes');
+
+  clearErrs('h-crop', 'h-field', 'h-date', 'h-est', 'h-actual');
+  let valid = true;
+
+  if (!crop) {
+    setErr('h-crop', 'Crop name is required.');
+    valid = false;
+  } else if (!isTextOnly(crop)) {
+    setErr('h-crop', 'Crop name must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+
+  if (field && !isTextOnly(field)) {
+    setErr('h-field', 'Field name must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+
+  if (!date) {
+    setErr('h-date', 'Harvest date is required.');
+    valid = false;
+  }
+
+  if (est !== '' && !isNumberOnly(est)) {
+    setErr('h-est', 'Estimated yield must be a positive number (e.g. 3.5).');
+    valid = false;
+  }
+
+  if (actual !== '' && !isNumberOnly(actual)) {
+    setErr('h-actual', 'Actual yield must be a positive number (e.g. 3.8).');
+    valid = false;
+  }
+
+  if (!valid) return;
+
   const data = {
     crop,
-    field:  document.getElementById('h-field').value.trim(),
-    date:   document.getElementById('h-date').value,
-    est:    parseFloat(document.getElementById('h-est').value) || 0,
-    actual: parseFloat(document.getElementById('h-actual').value) || 0,
-    notes:  document.getElementById('h-notes').value.trim(),
+    field,
+    date,
+    est:    parseFloat(est)    || 0,
+    actual: parseFloat(actual) || 0,
+    notes,
     created: Date.now()
   };
+
   await push(ref(db, `harvests/${uid}`), data);
   document.getElementById('harvest-modal').classList.remove('open');
+  clearModalErrs('harvest-modal');
   ['h-crop','h-field','h-est','h-actual','h-notes'].forEach(id => document.getElementById(id).value = '');
   showToast('Harvest recorded!', 'success');
 };
@@ -264,23 +396,52 @@ function renderTasks() {
 }
 
 window.openTaskModal = function() {
+  clearModalErrs('task-modal');
   document.getElementById('task-modal').classList.add('open');
 };
 
 window.saveTask = async function() {
-  const desc = document.getElementById('t-desc').value.trim();
-  if (!desc) { showToast('Task description required.', 'warn'); return; }
+  const desc     = getVal('t-desc');
+  const field    = getVal('t-field');
+  const due      = getVal('t-due');
+  const assigned = getVal('t-assigned');
+
+  clearErrs('t-desc', 't-field', 't-due', 't-assigned');
+  let valid = true;
+
+  if (!desc) {
+    setErr('t-desc', 'Task description is required.');
+    valid = false;
+  } else if (!isTextOnly(desc)) {
+    setErr('t-desc', 'Description must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+
+  if (field && !isTextOnly(field)) {
+    setErr('t-field', 'Field name must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+
+  if (assigned && !isTextOnly(assigned)) {
+    setErr('t-assigned', 'Name must contain text only (no special characters like < > { }).');
+    valid = false;
+  }
+
+  if (!valid) return;
+
   const data = {
     desc,
-    field:    document.getElementById('t-field').value.trim(),
-    due:      document.getElementById('t-due').value,
+    field,
+    due,
     priority: document.getElementById('t-priority').value,
-    assigned: document.getElementById('t-assigned').value.trim(),
+    assigned,
     done: false,
     created: Date.now()
   };
+
   await push(ref(db, `tasks/${uid}`), data);
   document.getElementById('task-modal').classList.remove('open');
+  clearModalErrs('task-modal');
   ['t-desc','t-field','t-due','t-assigned'].forEach(id => document.getElementById(id).value = '');
   showToast('Task added!', 'success');
 };
@@ -312,30 +473,30 @@ function listenCropsForMap() {
     const data = snap.val() || {};
     const crops = Object.entries(data).map(([id, v]) => ({ id, ...v }));
     crops.forEach(async c => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-  const planted = c.planted ? new Date(c.planted + 'T00:00:00') : null;
-  const harvest = c.harvest ? new Date(c.harvest + 'T00:00:00') : null;
+      const planted = c.planted ? new Date(c.planted + 'T00:00:00') : null;
+      const harvest = c.harvest ? new Date(c.harvest + 'T00:00:00') : null;
 
-  let newStatus = c.status;
+      let newStatus = c.status;
 
-  if (planted && harvest) {
-    if (today >= harvest) {
-      newStatus = 'harvest';
-    } else if (today >= planted) {
-      newStatus = 'growing';
-    } else {
-      newStatus = 'planted';
-    }
-  }
+      if (planted && harvest) {
+        if (today >= harvest) {
+          newStatus = 'harvest';
+        } else if (today >= planted) {
+          newStatus = 'growing';
+        } else {
+          newStatus = 'planted';
+        }
+      }
 
-  if (newStatus !== c.status && c.status !== 'at-risk') {
-    await update(ref(db, `crops/${uid}/${c.id}`), { status: newStatus });
-  }
-});
+      if (newStatus !== c.status && c.status !== 'at-risk') {
+        await update(ref(db, `crops/${uid}/${c.id}`), { status: newStatus });
+      }
+    });
     renderFieldMap(crops);
-    checkHarvestNotifications(crops); // ← ADD THIS
+    checkHarvestNotifications(crops);
   });
 }
 
@@ -389,12 +550,11 @@ function renderFieldMap(crops) {
   }).join('');
 }
 
-
-
 window._renderFieldMap = renderFieldMap;
 
-
+// ═══════════════════════════════════════════════════════
 // HARVEST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════
 
 async function requestNotificationPermission() {
   if (!('Notification' in window)) {
@@ -446,10 +606,8 @@ function checkHarvestNotifications(crops) {
 
   if (!alerts.length) return;
 
-  // Save notified state
   localStorage.setItem(notifiedKey, JSON.stringify(notified));
 
-  // Build modal content
   const title = alerts.length === 1
     ? `Harvest Alert — ${alerts[0].crop}`
     : `${alerts.length} Crops Need Attention`;
@@ -469,7 +627,6 @@ function checkHarvestNotifications(crops) {
   document.getElementById('harvest-notify-body').innerHTML = body;
   document.getElementById('harvest-notify-modal').classList.add('open');
 
-  // Also try browser notification
   if (Notification.permission === 'granted') {
     alerts.forEach(a => {
       new Notification('AgriFlow · Harvest Alert', {
